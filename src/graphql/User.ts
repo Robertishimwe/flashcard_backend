@@ -1,5 +1,5 @@
 import { objectType } from "nexus";
-
+//user
 export const User = objectType({
   name: "User",
   definition(t) {
