@@ -8,6 +8,8 @@ import {
   inputObjectType,
   arg,
   list,
+  idArg,
+  intArg,
 } from "nexus";
 import { NexusGenObjects } from "../../nexus-typegen";
 import { Prisma } from "@prisma/client";
@@ -53,7 +55,12 @@ export const FlashCardQuery = extendType({
         orderBy: arg({ type: list(nonNull(FlashCardOrderByInput)) }),
       },
       resolve(parent, args, context, info) {
+        const { userId } = context;
+        if (!userId) {
+          throw new Error("Cannot view a flashcards without logging in.");
+        }
         return context.prisma.flashCard.findMany({
+          where: { postedBy: { id: userId } },
           orderBy: args?.orderBy as
             | Prisma.Enumerable<Prisma.FlashCardOrderByWithRelationInput>
             | undefined,
@@ -80,7 +87,7 @@ export const FlashCardMutation = extendType({
         if (!userId) {
           throw new Error("Cannot post a flashcard without logging in.");
         }
-        const newflashcard = context.prisma.flashCard.create({
+        const newflashcard: any = context.prisma.flashCard.create({
           data: {
             category: args.category,
             title: args.title,
@@ -91,19 +98,37 @@ export const FlashCardMutation = extendType({
         });
         return newflashcard;
       },
-      // const { category, title, description, done } = args; // 4
+    });
+  },
+});
 
-      // let idCount = flashCards.length + 1; // 5
-      //   const flashCard = {
-      //     id: idCount,
-      //     category: category,
-      //     title: title,
-      //     description: description,
-      //     done: done,
-      //   };
-      //   flashCards.push(flashCard);
-      //   return flashCard;
-      // },
+export const FlashCardUpdateMutation = extendType({
+  type: "Mutation",
+  definition(t) {
+    t.nonNull.field("updatecard", {
+      type: "FlashCard",
+      args: {
+        id: nonNull(intArg()),
+      },
+
+      resolve(parent, args, context) {
+        const { userId } = context;
+        const { id } = args;
+
+        if (!userId) {
+          throw new Error("Cannot update a flashcard without logging in.");
+        }
+        if (!id) {
+          throw new Error("Cannot update a flashcard without an id.");
+        }
+        const newflashcard = context.prisma.flashCard.update({
+          where: { id: args.id },
+          data: {
+            done: true,
+          },
+        });
+        return newflashcard;
+      },
     });
   },
 });
